@@ -1,71 +1,65 @@
-var combinators = require('fantasy-combinators'),
+var Lens = require('fantasy-lenses').Lens,
+    lens = Lens.objectLens,
 
+    combinators = require('fantasy-combinators'),
     compose = combinators.compose;
+
+function merge(a, b) {
+    return function(o) {
+        return lens(a).run(o).set(lens(b).run(o).get());
+    };
+}
 
 // Cauldron pot
 
-function applicative(o) {
-    var x = function(o) {
-       o.prototype.of = o.prototype['@@fantasy-land/of'];
-        return o; 
+function applicative(a, b) {
+    return function(x, y) {
+        return compose(merge(a, b))(apply(x, y));
     };
-    return compose(x)(apply)(o);
 }
-exports.applicative = applicative;
 
-function apply(o) {
-    var x = function(o) {
-       o.prototype.ap = o.prototype['@@fantasy-land/ap'];
-        return o; 
+function apply(a, b) {
+    return function(x, y) {
+        return compose(merge(a, b))(functor(x, y));
     };
-    return compose(x)(functor)(o);
 }
-exports.apply = apply;
 
-function chain(o) {
-    var x = function(o) {
-       o.prototype.chain = o.prototype['@@fantasy-land/chain'];
-        return o; 
+function chain(a, b) {
+    return function(x, y) {
+        return compose(merge(a, b))(apply(x, y));
     };
-    return compose(x)(apply)(o);
 }
-exports.chain = chain;
 
-function extend(o) {
-    o.prototype.extend = o.prototype['@@fantasy-land/extend'];
-    return o;
-}
-exports.extend = extend;
+exports.Proto = {
+    applicative: applicative('of', 'fantasyland.of')('apply', 'fantasyland.apply'),
+    apply: apply('apply', 'fantasyland.apply')('map', 'fantasyland.map'),
+    chain: chain('chain', 'fantasyland.chain')('apply', 'fantasyland.apply'),
 
-function extend(o) {
-    o.prototype.extract = o.prototype['@@fantasy-land/extract'];
-    return o;
-}
-exports.extend = extend;
+    extend: merge('extend', 'fantasyland.extend'),
+    extend: merge('extract', 'fantasyland.extract'),
+    functor: merge('map', 'fantasyland.map'),
+    monoid: merge('empty', 'fantasyland.empty'),
+    semigroup: merge('concat', 'fantasyland.concat'),
+    setoid: merge('equals', 'fantasyland.equals'),
 
-function functor(o) {
-    o.prototype.map = o.prototype['@@fantasy-land/map'];
-    return o;
-}
-exports.functor = functor;
+    comonad: compose(extend)(extract),
+    monad: compose(applicative)(chain)
+};
 
-function monoid(o) {
-    o.prototype.empty = o.prototype['@@fantasy-land/empty'];
-    return o;
-}
-exports.monoid = monoid;
+exports.Namespace = {
+    applicative: applicative('fantasyland.of', 'of')('fantasyland.apply', 'apply'),
+    apply: apply('fantasyland.apply', 'apply')('fantasyland.map', 'map'),
+    chain: chain('fantasyland.chain', 'chain')('fantasyland.apply', 'apply'),
 
-function semigroup(o) {
-    o.prototype.concat = o.prototype['@@fantasy-land/concat'];
-    return o;
-}
-exports.semigroup = semigroup;
+    extend: merge('fantasyland.extend', 'extend'),
+    extend: merge('fantasyland.extract', 'extract'),
+    functor: merge('fantasyland.map', 'map'),
+    monoid: merge('fantasyland.empty', 'empty'),
+    semigroup: merge('fantasyland.concat', 'concat'),
+    setoid: merge('fantasyland.equals', 'equals'),
 
-function setoid(o) {
-    o.prototype.equals = o.prototype['@@fantasy-land/equals'];
-    return o;
-}
-exports.setoid = setoid;
+    comonad: compose(extend)(extract),
+    monad: compose(applicative)(chain)
+};
 
-exports.comonad = compose(extend)(extract)(o);
-exports.monad = compose(applicative)(chain);
+exports.merge = merge;
